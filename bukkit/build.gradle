@@ -1,0 +1,27 @@
+// Bukkit-API adapter — runs on CraftBukkit, Spigot and Paper.
+// Builds a self-contained jar: :core + Gson are shaded in (Gson relocated to avoid clashes).
+
+plugins {
+    id 'com.github.johnrengelman.shadow'
+}
+
+dependencies {
+    // The generic engine (and, transitively, Gson) — shaded into the final jar.
+    implementation project(':core')
+
+    // The Bukkit API. A plugin compiled against this loads on CraftBukkit/Spigot/Paper.
+    // Provided by the server at runtime, so compileOnly.
+    compileOnly 'org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT'
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    archiveBaseName.set('McBans-Bukkit')
+    // Relocate Gson so we never collide with a Gson the server already exports on its classpath.
+    relocate 'com.google.gson', 'com.mcbans.plugin.libs.gson'
+}
+
+// `gradle build` should produce the shaded jar. The plain `jar` stays enabled (with a classifier so
+// it's clearly the internal artifact) so the :spigot module can compile against the Bukkit adapter.
+tasks.named('build') { dependsOn 'shadowJar' }
+tasks.named('jar') { archiveClassifier.set('plain') }

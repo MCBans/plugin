@@ -1,0 +1,15 @@
+rootProject.name = 'mcbans-plugin'
+
+// The generic, platform-agnostic core (WebSocket client, protocol, ban model).
+include 'core'
+
+// Per-platform adapters built on top of :core.
+//   bukkit / spigot — Bukkit-API servers (CraftBukkit, Spigot, Paper).
+//   sponge          — SpongeAPI servers.
+//   forge           — Forge mod (server-side).
+//   bungeecord      — proxy; LOGIN / ban-check only (full plugin runs on the server).
+include 'bukkit'
+include 'spigot'
+include 'sponge'
+include 'forge'
+include 'bungeecord'

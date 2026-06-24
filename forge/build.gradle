@@ -1,0 +1,60 @@
+// Forge mod (server-side) for Minecraft 1.20.1 / Forge 47.x.
+//
+// Forge needs its own toolchain (ForgeGradle: remapping, the `minecraft` dependency, run tasks), so
+// this module deliberately does NOT inherit the root's plain-java conventions for tests. Building it
+// requires network access to the Forge maven and a one-time `genIntellijRuns`/`build`.
+//
+// :core (+ Gson) is bundled straight into the mod jar via a dedicated `shade` configuration. We do
+// NOT relocate Gson here (unlike the Bukkit/Bungee shadow jars): Forge gives every mod its own
+// classloader, so a bundled Gson can't clash with another mod's. The reobfuscation step (reobfJar)
+// only renames Minecraft SRG references, leaving the bundled core/Gson classes untouched.
+
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '[6.0,6.2)', changing: true
+    }
+}
+
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'java'
+
+version = rootProject.version
+group = 'com.mcbans.plugin.forge'
+base { archivesName = 'McBans-Forge' }
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    // Official Mojang mappings for 1.20.1.
+    mappings channel: 'official', version: '1.20.1'
+    copyIdeResources = true
+}
+
+configurations {
+    // Libraries bundled into the mod jar; also placed on the compile/runtime classpath.
+    shade
+    implementation.extendsFrom shade
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.2.0'
+
+    // The generic engine + Gson — bundled into the jar (see the `jar` task below).
+    shade project(':core')
+    shade 'com.google.code.gson:gson:2.10.1'
+}
+
+// Fold the shaded libraries' classes into the mod jar. reobfJar then reobfuscates this jar in place,
+// so the distributable at build/libs/McBans-Forge-<ver>.jar is the reobfuscated, self-contained mod.
+jar {
+    // Depend on the shade configuration so Gradle wires :core:jar (and Gson) as inputs.
+    dependsOn configurations.shade
+    from {
+        configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}

@@ -1,0 +1,54 @@
+// Root build for the MCBans Minecraft plugin family.
+//
+//   :core       — generic, platform-agnostic logic (the /plugin/ws client, ban model,
+//                 command builders, cursor persistence). Depends on nothing platform-specific.
+//   :bukkit     — Bukkit-API adapter (runs on CraftBukkit / Spigot / Paper).
+//   :spigot     — Spigot-API adapter (reuses :bukkit, adds Spigot specifics).
+//   :sponge     — SpongeAPI adapter.
+//   :forge      — Forge mod (server-side).
+//   :bungeecord — BungeeCord proxy plugin, LOGIN / ban-check ONLY.
+//
+// Every shippable adapter shades :core (and its Gson) into a single self-contained jar via the
+// Gradle Shadow plugin, relocating Gson so it never clashes with a Gson the host already exports.
+
+plugins {
+    // Applied per-subproject; declared here so the version is resolved once for the whole tree.
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+}
+
+allprojects {
+    group = 'com.mcbans.plugin'
+    version = '1.0.0-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+        maven { name = 'spigot';     url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+        maven { name = 'sonatype';   url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
+        maven { name = 'sponge';     url = 'https://repo.spongepowered.org/repository/maven-public/' }
+        maven { name = 'minecraft';  url = 'https://libraries.minecraft.net/' }
+        maven { name = 'forge';      url = 'https://maven.minecraftforge.net/' }
+        maven { name = 'bungeecord'; url = 'https://oss.sonatype.org/content/repositories/snapshots' }
+    }
+}
+
+configure(subprojects.findAll { it.name != 'forge' }) {
+    // The Forge subproject is configured entirely by its own ForgeGradle-driven build.gradle (it
+    // manages the `java` plugin, toolchain and remapping itself), so we apply the shared plain-java
+    // conventions to every module EXCEPT forge.
+    apply plugin: 'java'
+
+    java {
+        toolchain {
+            // Matches the Spring Boot API toolchain; targets modern Minecraft (1.17+).
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        // Keep parameter names so the few reflective/config bindings stay readable.
+        options.compilerArgs += ['-parameters']
+    }
+
+    tasks.withType(Test).configureEach { useJUnitPlatform() }
+}

@@ -1,0 +1,42 @@
+name: McBans
+version: '1.0.0'
+main: com.mcbans.plugin.spigot.McBansSpigotPlugin
+api-version: '1.16'
+author: MCBans
+description: MCBans global ban management — Spigot adapter.
+load: STARTUP
+
+commands:
+  mcbans:
+    description: Show MCBans connection status.
+    usage: /mcbans
+  mcban:
+    description: Globally ban a player.
+    usage: /mcban <player> <reason>
+    permission: mcbans.ban
+  mctempban:
+    description: Temporarily ban a player.
+    usage: /mctempban <player> <duration> <w|d|h|m> <reason>
+    permission: mcbans.tempban
+  mcunban:
+    description: Unban a player or IP.
+    usage: /mcunban <player|ip>
+    permission: mcbans.unban
+  mclookup:
+    description: Look up a player's ban history.
+    usage: /mclookup <player>
+    permission: mcbans.lookup
+
+permissions:
+  mcbans.ban:
+    description: Allows issuing global bans.
+    default: op
+  mcbans.tempban:
+    description: Allows issuing temp bans.
+    default: op
+  mcbans.unban:
+    description: Allows unbanning.
+    default: op
+  mcbans.lookup:
+    description: Allows ban-history lookups.
+    default: op

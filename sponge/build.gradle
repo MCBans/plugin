@@ -1,0 +1,28 @@
+// SpongeAPI 8 adapter (server-side). Shades :core + Gson into the plugin jar.
+//
+// Note: a production Sponge build typically also applies the `org.spongepowered.gradle.plugin`
+// SpongeGradle plugin to generate plugin metadata and provide a run task. We keep the build plain
+// and ship an explicit META-INF/sponge_plugins.json so the module builds without that plugin; add
+// SpongeGradle if you want `runServer`/metadata generation.
+
+plugins {
+    id 'com.github.johnrengelman.shadow'
+}
+
+dependencies {
+    implementation project(':core')
+
+    // SpongeAPI: provided by the Sponge platform at runtime.
+    // (Plugin metadata is shipped explicitly as META-INF/sponge_plugins.json rather than generated
+    //  by the SpongeAPI annotation processor, which needs the SpongeGradle DSL to emit it.)
+    compileOnly 'org.spongepowered:spongeapi:8.2.0'
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    archiveBaseName.set('McBans-Sponge')
+    relocate 'com.google.gson', 'com.mcbans.plugin.libs.gson'
+}
+
+tasks.named('build') { dependsOn 'shadowJar' }
+tasks.named('jar') { enabled = false }

@@ -1,0 +1,20 @@
+// Generic, platform-agnostic MCBans plugin core.
+//
+// No Minecraft/platform dependency at all — just the WebSocket client (JDK built-in
+// java.net.http.WebSocket, so TLS comes free), the JSON protocol, the ban/login model,
+// and the command builders. Each platform adapter depends on this module and provides a
+// thin Platform implementation (logger, scheduler, player gate, config + cursor storage).
+
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    // Gson is the only runtime dependency. Platform jars shade + relocate it (see each adapter's
+    // build.gradle) so it never collides with a Gson the host server already exposes.
+    api 'com.google.code.gson:gson:2.10.1'
+
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}

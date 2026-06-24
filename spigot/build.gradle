@@ -1,0 +1,23 @@
+// Spigot-API adapter. Spigot's API is a superset of Bukkit's, so this reuses the :bukkit adapter
+// wholesale and compiles against spigot-api — producing a distinct, Spigot-branded jar that can
+// later grow Spigot/Paper-only features (component kick messages, async chat, ...).
+
+plugins {
+    id 'com.github.johnrengelman.shadow'
+}
+
+dependencies {
+    // Reuse the full Bukkit adapter (which itself shades :core + Gson).
+    implementation project(':bukkit')
+
+    compileOnly 'org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT'
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    archiveBaseName.set('McBans-Spigot')
+    relocate 'com.google.gson', 'com.mcbans.plugin.libs.gson'
+}
+
+tasks.named('build') { dependsOn 'shadowJar' }
+tasks.named('jar') { enabled = false }

@@ -1,0 +1,25 @@
+# MCBans plugin configuration (Bukkit / Spigot / Paper).
+
+# Your MCBans server API key (servers.server_api). REQUIRED — the plugin disables itself if blank.
+api-key: ''
+
+# MCBans host. The plugin connects to wss://<host>/plugin/ws.
+host: 'www.mcbans.com'
+
+# Protocol version: 3 (recommended; real-time ban-sync push) or 2 (legacy parity).
+protocol-version: 3
+
+# Use TLS (wss://). Keep true in production; set false only for local ws:// dev.
+tls: true
+
+# Shown to a denied player. {reason} is replaced with the ban reason. Supports &-colour codes.
+kick-message: "&cYou are banned from this server.\n&7Reason: &f{reason}\n&7Appeal at &bwww.mcbans.com"
+
+# If a login check times out or errors: true = let the player in, false = deny them.
+fail-open: true
+
+# Whether the soft 'b' status (banned elsewhere / no MCBans account) also denies login.
+deny-on-banned-status: false
+
+# Max time (ms) to wait for the on-join ban check before applying the fail-open/closed policy.
+login-timeout-ms: 5000

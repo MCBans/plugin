@@ -1,0 +1,26 @@
+// BungeeCord proxy adapter — LOGIN / ban-check ONLY.
+//
+// On a proxy network the login gate IS the enforcement point: the proxy rejects banned players
+// before they ever reach a backend server. Admin ban commands and ban-sync *application* live in
+// the server-side plugin (:bukkit / :spigot / :sponge / :forge), not here, so this module wires a
+// NOOP ban-sync handler and registers no commands.
+
+plugins {
+    id 'com.github.johnrengelman.shadow'
+}
+
+dependencies {
+    implementation project(':core')
+
+    // BungeeCord API: provided by the proxy at runtime.
+    compileOnly 'net.md-5:bungeecord-api:1.20-R0.1-SNAPSHOT'
+}
+
+shadowJar {
+    archiveClassifier.set('')
+    archiveBaseName.set('McBans-BungeeCord')
+    relocate 'com.google.gson', 'com.mcbans.plugin.libs.gson'
+}
+
+tasks.named('build') { dependsOn 'shadowJar' }
+tasks.named('jar') { enabled = false }

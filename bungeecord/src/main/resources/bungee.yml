@@ -1,0 +1,5 @@
+name: McBans
+main: com.mcbans.plugin.bungeecord.McBansBungeePlugin
+version: '1.0.0'
+author: MCBans
+description: MCBans proxy login gate — rejects banned players at the BungeeCord edge.

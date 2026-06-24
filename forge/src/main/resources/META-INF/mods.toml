@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[47,)"
+license = "All Rights Reserved"
+issueTrackerURL = "https://www.mcbans.com"
+
+[[mods]]
+modId = "mcbans"
+version = "1.0.0"
+displayName = "McBans"
+authors = "MCBans"
+description = '''
+MCBans global ban management — Forge server-side adapter.
+Gates joins against the MCBans network and applies real-time ban-sync.
+'''
+
+[[dependencies.mcbans]]
+    modId = "forge"
+    mandatory = true
+    versionRange = "[47,)"
+    ordering = "NONE"
+    side = "SERVER"
+
+[[dependencies.mcbans]]
+    modId = "minecraft"
+    mandatory = true
+    versionRange = "[1.20.1,1.21)"
+    ordering = "NONE"
+    side = "SERVER"

@@ -1,0 +1,27 @@
+{
+  "loader": {
+    "name": "java_plain",
+    "version": "1.0"
+  },
+  "license": "All Rights Reserved",
+  "global": {
+    "version": "1.0.0",
+    "links": {
+      "homepage": "https://www.mcbans.com"
+    },
+    "contributors": [
+      { "name": "MCBans" }
+    ],
+    "dependencies": [
+      { "id": "spongeapi", "version": "8.2.0", "load-order": "after" }
+    ]
+  },
+  "plugins": [
+    {
+      "id": "mcbans",
+      "name": "McBans",
+      "entrypoint": "com.mcbans.plugin.sponge.McBansSpongePlugin",
+      "description": "MCBans global ban management — Sponge adapter."
+    }
+  ]
+}
