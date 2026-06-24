@@ -38,6 +38,9 @@ commands:
   unban:
     description: Unban a player or IP.
     usage: /unban <player|UUID|ip>
+  verify:
+    description: Link your Minecraft account to your MCBans account.
+    usage: /verify <code>
   lookup:
     description: Look up a player's ban history.
     aliases: [lup]
@@ -86,6 +89,9 @@ permissions:
   mcbans.kick:
     description: Use the kick command.
     default: op
+  mcbans.verify:
+    description: Link your own Minecraft account to MCBans.
+    default: true
   mcbans.kick.exempt:
     description: Exempt from being kicked.
     default: op

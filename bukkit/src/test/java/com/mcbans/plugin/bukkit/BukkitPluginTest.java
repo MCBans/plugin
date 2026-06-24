@@ -70,6 +70,15 @@ class BukkitPluginTest {
     }
 
     @Test
+    void verifyRegistersAndPromptsForCodeWhenMissing() {
+        assertNotNull(plugin.getCommand("verify"), "verify command not registered");
+        PlayerMock player = server.addPlayer();           // any player may /verify (default true)
+        player.performCommand("verify");                  // no code → usage message (deterministic)
+        assertTrue(seenMessageContaining(player, "Usage: /verify"),
+                "expected the /verify usage message");
+    }
+
+    @Test
     void banWithNoArgsReportsFormatError() {
         PlayerMock player = server.addPlayer();
         player.setOp(true);

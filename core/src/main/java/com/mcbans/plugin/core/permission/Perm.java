@@ -15,6 +15,7 @@ public enum Perm {
     BAN_IP("ban.ip"),
     UNBAN("unban"),
     KICK("kick"),
+    VERIFY("verify"),
 
     VIEW_ALTS("view.alts"),
     VIEW_BANS("view.bans"),

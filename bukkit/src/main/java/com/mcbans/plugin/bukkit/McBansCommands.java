@@ -51,6 +51,7 @@ final class McBansCommands implements CommandExecutor, TabCompleter {
             case "tempban"   -> doTempBan(sender, args);
             case "banip"     -> doBanIp(sender, args);
             case "kick"      -> doKick(sender, args);
+            case "verify"    -> doVerify(sender, args);
             case "unban"     -> doUnban(sender, args);
             case "lookup"    -> doLookup(sender, args);
             case "banlookup" -> doBanLookup(sender, args);
@@ -201,6 +202,35 @@ final class McBansCommands implements CommandExecutor, TabCompleter {
         plugin.send(sender, msg.localize("kickSuccess",
                 Messages.PLAYER, target.getName(), Messages.ADMIN, sender.getName(), Messages.REASON, reason));
         Bukkit.getPluginManager().callEvent(new PlayerKickEvent(target.getName(), sender.getName(), reason));
+    }
+
+    // ---- verify (player links their own account) -----------------------------------------------
+
+    private void doVerify(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            err(sender, "verifyPlayerOnly");
+            return;
+        }
+        if (!require(sender, Perm.VERIFY)) {
+            return;
+        }
+        if (args.length < 1) {
+            err(sender, "verifyUsage");
+            return;
+        }
+        String code = args[0];
+        core.verifyUser(player.getName(), code).whenComplete((r, e) -> sync(() -> {
+            if (e != null || r == null) {
+                err(sender, "verifyUnavailable");
+                return;
+            }
+            switch (r.state()) {
+                case SUCCESS -> plugin.send(sender, msg.localize("verifySuccess"));
+                case ALREADY -> plugin.send(sender, msg.localize("verifyAlready"));
+                case INVALID -> plugin.send(sender, msg.localize("verifyInvalid"));
+                case BLOCKED -> err(sender, "verifyUnavailable");
+            }
+        }));
     }
 
     // ---- unban ---------------------------------------------------------------------------------

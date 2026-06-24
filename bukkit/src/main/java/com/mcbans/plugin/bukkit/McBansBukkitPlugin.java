@@ -64,7 +64,7 @@ public class McBansBukkitPlugin extends JavaPlugin {
 
         McBansCommands cmd = new McBansCommands(this);
         for (String name : new String[] {"ban", "globalban", "tempban", "banip", "kick", "unban", "rban",
-                "lookup", "banlookup", "altlookup", "namelookup", "mcbans", "mcbs"}) {
+                "verify", "lookup", "banlookup", "altlookup", "namelookup", "mcbans", "mcbs"}) {
             if (getCommand(name) != null) {
                 getCommand(name).setExecutor(cmd);
                 getCommand(name).setTabCompleter(cmd);

@@ -6,6 +6,7 @@ import com.mcbans.plugin.core.i18n.Messages;
 import com.mcbans.plugin.core.model.BanResult;
 import com.mcbans.plugin.core.model.BanStatus;
 import com.mcbans.plugin.core.model.LoginResult;
+import com.mcbans.plugin.core.model.VerifyResult;
 import com.mcbans.plugin.core.net.McBansSocketClient;
 import com.mcbans.plugin.core.platform.BanSyncHandler;
 import com.mcbans.plugin.core.platform.CursorStore;
@@ -296,6 +297,20 @@ public final class McBansCore {
     /** Whether this server is premium. */
     public CompletableFuture<JsonObject> serverPremium() {
         return client.sendCommand("serverPremium", new JsonObject()).thenApply(this::dataObject);
+    }
+
+    /**
+     * Link an in-game account to an MCBans account using a one-time code the player generated on
+     * the website. Sends {@code verify_user} (v3) / {@code verifyUser} (v2) with the player name and
+     * auth code. This is a <em>protected</em> command: the server's API key/address must be in the
+     * API's verify-user allowlist, otherwise the result is {@link VerifyResult.State#BLOCKED}.
+     */
+    public CompletableFuture<VerifyResult> verifyUser(String player, String code) {
+        String cmd = config.version() >= 3 ? "verify_user" : "verifyUser";
+        // Send under several field names so both the v3 (segment) and v2 (param) handlers resolve it.
+        return client.sendCommand(cmd, Json.obj(Map.of(
+                        "player", nz(player), "name", nz(player), "auth", nz(code), "authcode", nz(code)))
+                ).thenApply(VerifyResult::fromReply);
     }
 
     /** Notify MCBans that a player left this server's online list. */
