@@ -80,6 +80,27 @@ translations, auto-converted from the legacy language files). Pick one with the 
 **Events (Bukkit/Spigot):** `PlayerBanEvent`, `PlayerUnbanEvent`, `PlayerKickEvent` for other
 plugins to listen to.
 
+## Continuous integration
+
+`.github/workflows/build.yml` builds every adapter on each push/PR (JDK 17, Gradle wrapper, cached
+ForgeGradle) and uploads the `McBans-*.jar` artifacts.
+
+## Local smoke test
+
+`scripts/smoke-test.sh <bukkit|spigot|bungeecord|sponge|forge>` boots a real server of that platform
+with the built jar and verifies the plugin loads/enables. It points the config at an unreachable
+host with a dummy key, so the plugin fully initialises (registers commands/listeners) while the
+WebSocket client just retries in the background — which is exactly what proves the jar is valid on
+that platform. Servers are downloaded into the (gitignored) `.servertest/` dir on first use.
+
+```bash
+cd plugin && ./gradlew build
+for p in bukkit spigot bungeecord sponge forge; do scripts/smoke-test.sh "$p"; done
+```
+
+All five platforms have been verified to load and enable: Bukkit/Spigot on Paper 1.20.4, BungeeCord,
+SpongeVanilla 1.19.4 (API 8.2), and Forge 1.20.1.
+
 ## Build
 
 Requires JDK 17 and network access to the platform mavens (Spigot, Sponge, Forge, Sonatype).

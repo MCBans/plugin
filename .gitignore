@@ -6,3 +6,6 @@ run/
 .idea/
 *.iml
 out/
+
+# local server smoke-test workdir
+.servertest/

@@ -4,10 +4,11 @@
 // this module deliberately does NOT inherit the root's plain-java conventions for tests. Building it
 // requires network access to the Forge maven and a one-time `genIntellijRuns`/`build`.
 //
-// :core (+ Gson) is bundled straight into the mod jar via a dedicated `shade` configuration. We do
-// NOT relocate Gson here (unlike the Bukkit/Bungee shadow jars): Forge gives every mod its own
-// classloader, so a bundled Gson can't clash with another mod's. The reobfuscation step (reobfJar)
-// only renames Minecraft SRG references, leaving the bundled core/Gson classes untouched.
+// Only :core is bundled into the mod jar (via the `shade` configuration). Gson is deliberately NOT
+// bundled: Minecraft/Forge already ships Gson as a module on the boot layer, and bundling it again
+// makes two modules export `com.google.gson.stream` → a ResolutionException at server start. The
+// shaded core classes resolve against Forge's Gson at runtime. reobfJar only renames Minecraft SRG
+// references, leaving the bundled core classes untouched.
 
 buildscript {
     repositories {
@@ -48,13 +49,16 @@ dependencies {
     shade 'com.google.code.gson:gson:2.10.1'
 }
 
-// Fold the shaded libraries' classes into the mod jar. reobfJar then reobfuscates this jar in place,
-// so the distributable at build/libs/McBans-Forge-<ver>.jar is the reobfuscated, self-contained mod.
+// Fold the shaded libraries' classes into the mod jar — EXCLUDING Gson (provided by Forge). reobfJar
+// then reobfuscates this jar in place, so build/libs/McBans-Forge-<ver>.jar is the reobfuscated,
+// self-contained mod.
 jar {
-    // Depend on the shade configuration so Gradle wires :core:jar (and Gson) as inputs.
+    // Depend on the shade configuration so Gradle wires :core:jar as an input.
     dependsOn configurations.shade
     from {
-        configurations.shade.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.shade
+                .findAll { !it.name.startsWith('gson') }
+                .collect { it.isDirectory() ? it : zipTree(it) }
     }
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

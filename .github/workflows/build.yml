@@ -1,0 +1,55 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The Forge module brings its own (slow) ForgeGradle decompile pipeline, so cache its
+      # generated artifacts between runs to keep CI fast.
+      - name: Cache ForgeGradle
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/forge_gradle
+          key: forgegradle-${{ runner.os }}-1.20.1-47.2.0
+          restore-keys: forgegradle-${{ runner.os }}-
+
+      - name: Build core + Bukkit/Spigot/Sponge/BungeeCord adapters
+        run: ./gradlew :core:build :bukkit:build :spigot:build :sponge:build :bungeecord:build --no-daemon --stacktrace
+
+      # Forge is built in its own step so a ForgeGradle failure is clearly attributed.
+      - name: Build Forge mod
+        run: ./gradlew :forge:build --no-daemon --stacktrace
+
+      - name: Collect shippable jars
+        run: |
+          mkdir -p artifacts
+          cp */build/libs/McBans-*.jar artifacts/
+          ls -l artifacts
+
+      - name: Upload plugin jars
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcbans-plugins
+          path: artifacts/*.jar
+          if-no-files-found: error
