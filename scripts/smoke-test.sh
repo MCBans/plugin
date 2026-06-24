@@ -68,7 +68,14 @@ report() {
 case "$PLATFORM" in
   bukkit|spigot)
     PAPER="$WORK/paper.jar"
-    [ -f "$PAPER" ] || { echo "Missing $PAPER (download Paper $MC_PAPER first)"; exit 1; }
+    if [ ! -f "$PAPER" ]; then
+      echo "Downloading Paper $MC_PAPER ..."
+      B=$(curl -sL -m 40 "https://api.papermc.io/v2/projects/paper/versions/$MC_PAPER/builds" \
+        | python3 -c "import sys,json;print(json.load(sys.stdin)['builds'][-1]['build'])" 2>/dev/null)
+      [ -n "$B" ] && curl -sL -m 180 -o "$PAPER" \
+        "https://api.papermc.io/v2/projects/paper/versions/$MC_PAPER/builds/$B/downloads/paper-$MC_PAPER-$B.jar"
+    fi
+    [ -s "$PAPER" ] || { red "[$PLATFORM] could not download Paper"; exit 1; }
     rm -rf "$RUN"; mkdir -p "$RUN/plugins/McBans"
     cp "$(jarfor "$PLATFORM")" "$RUN/plugins/"
     echo "eula=true" > "$RUN/eula.txt"
@@ -95,7 +102,12 @@ PROP
 
   bungeecord)
     BUNGEE="$WORK/bungeecord.jar"
-    [ -f "$BUNGEE" ] || { echo "Missing $BUNGEE"; exit 1; }
+    if [ ! -f "$BUNGEE" ]; then
+      echo "Downloading BungeeCord ..."
+      curl -sL -m 180 -o "$BUNGEE" \
+        "https://ci.md-5.net/job/BungeeCord/lastSuccessfulBuild/artifact/bootstrap/target/BungeeCord.jar"
+    fi
+    [ -s "$BUNGEE" ] || { red "[bungeecord] could not download BungeeCord"; exit 1; }
     rm -rf "$RUN"; mkdir -p "$RUN/plugins/McBans"
     cp "$(jarfor bungeecord)" "$RUN/plugins/"
     cat > "$RUN/plugins/McBans/mcbans.properties" <<PROP

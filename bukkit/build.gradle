@@ -12,6 +12,13 @@ dependencies {
     // The Bukkit API. A plugin compiled against this loads on CraftBukkit/Spigot/Paper.
     // Provided by the server at runtime, so compileOnly.
     compileOnly 'org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT'
+
+    // In-JVM Bukkit server mock for plugin tests (provides the Bukkit API transitively).
+    // Pinned to the last 3.x line that targets Java 17 (3.89.0+ require Java 21).
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.20:3.88.1'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 shadowJar {

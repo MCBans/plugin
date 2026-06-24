@@ -127,7 +127,7 @@ public final class McBansForgeMod {
             if (action.uuid() != null && !action.uuid().isBlank()) {
                 try {
                     ServerPlayer p = server.getPlayerList().getPlayer(
-                            com.mcbans.plugin.forge.UuidUtil.parse(action.uuid()));
+                            com.mcbans.plugin.core.util.Identifiers.parseUuid(action.uuid()));
                     if (p != null) {
                         return p;
                     }

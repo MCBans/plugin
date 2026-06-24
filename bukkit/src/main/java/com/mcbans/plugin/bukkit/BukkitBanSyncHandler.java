@@ -3,11 +3,10 @@ package com.mcbans.plugin.bukkit;
 import com.mcbans.plugin.core.model.BanSyncAction;
 import com.mcbans.plugin.core.model.Notice;
 import com.mcbans.plugin.core.platform.BanSyncHandler;
+import com.mcbans.plugin.core.util.Identifiers;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-
-import java.util.UUID;
 
 /**
  * Applies pushed ban-sync actions on Bukkit: a {@code ban} kicks the matching online player; an
@@ -49,7 +48,7 @@ final class BukkitBanSyncHandler implements BanSyncHandler {
         String uuid = action.uuid();
         if (uuid != null && !uuid.isBlank()) {
             try {
-                Player p = Bukkit.getPlayer(toUuid(uuid));
+                Player p = Bukkit.getPlayer(Identifiers.parseUuid(uuid));
                 if (p != null) {
                     return p;
                 }
@@ -58,12 +57,5 @@ final class BukkitBanSyncHandler implements BanSyncHandler {
             }
         }
         return action.name() == null || action.name().isBlank() ? null : Bukkit.getPlayerExact(action.name());
-    }
-
-    private static UUID toUuid(String raw) {
-        String s = raw.replace("-", "");
-        return UUID.fromString(s.replaceFirst(
-                "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
-                "$1-$2-$3-$4-$5"));
     }
 }

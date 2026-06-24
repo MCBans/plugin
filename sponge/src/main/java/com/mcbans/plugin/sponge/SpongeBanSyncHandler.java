@@ -3,12 +3,11 @@ package com.mcbans.plugin.sponge;
 import com.mcbans.plugin.core.model.BanSyncAction;
 import com.mcbans.plugin.core.model.Notice;
 import com.mcbans.plugin.core.platform.BanSyncHandler;
+import com.mcbans.plugin.core.util.Identifiers;
 import net.kyori.adventure.text.Component;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.living.player.server.ServerPlayer;
-
-import java.util.UUID;
 
 /** Applies pushed ban-sync actions on Sponge: a {@code ban} kicks the matching online player. */
 final class SpongeBanSyncHandler implements BanSyncHandler {
@@ -40,18 +39,11 @@ final class SpongeBanSyncHandler implements BanSyncHandler {
     private java.util.Optional<ServerPlayer> resolve(BanSyncAction action) {
         if (action.uuid() != null && !action.uuid().isBlank()) {
             try {
-                return Sponge.server().player(toUuid(action.uuid()));
+                return Sponge.server().player(Identifiers.parseUuid(action.uuid()));
             } catch (IllegalArgumentException ignored) {
                 // fall through to name lookup
             }
         }
         return action.name() == null ? java.util.Optional.empty() : Sponge.server().player(action.name());
-    }
-
-    private static UUID toUuid(String raw) {
-        String s = raw.replace("-", "");
-        return UUID.fromString(s.replaceFirst(
-                "(\\p{XDigit}{8})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{4})(\\p{XDigit}{12})",
-                "$1-$2-$3-$4-$5"));
     }
 }

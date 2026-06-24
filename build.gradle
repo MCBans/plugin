@@ -23,6 +23,7 @@ allprojects {
     repositories {
         mavenCentral()
         maven { name = 'spigot';     url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+        maven { name = 'papermc';    url = 'https://repo.papermc.io/repository/maven-public/' }
         maven { name = 'sonatype';   url = 'https://oss.sonatype.org/content/repositories/snapshots/' }
         maven { name = 'sponge';     url = 'https://repo.spongepowered.org/repository/maven-public/' }
         maven { name = 'minecraft';  url = 'https://libraries.minecraft.net/' }

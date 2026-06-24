@@ -80,10 +80,28 @@ translations, auto-converted from the legacy language files). Pick one with the 
 **Events (Bukkit/Spigot):** `PlayerBanEvent`, `PlayerUnbanEvent`, `PlayerKickEvent` for other
 plugins to listen to.
 
+## Tests
+
+Coverage is layered because mock-harness support differs per platform:
+
+- **`core`** — JUnit tests for the version-agnostic logic: login parsing, command/duration parsing,
+  i18n message resolution, and the shared `Identifiers` (UUID/IPv4) used by every adapter.
+- **Bukkit / Spigot** — in-JVM tests on a mock server (**MockBukkit**): the plugin enables, all
+  commands register, and the permission gate / argument validation behave correctly — no real
+  network (config points at an unreachable host).
+- **Sponge / Forge / BungeeCord** — no in-JVM mock harness exists, so their coverage is the boot
+  smoke test below (a real server is launched), backed by the shared `core` unit tests.
+
+```bash
+./gradlew test          # core + Bukkit + Spigot unit tests
+```
+
 ## Continuous integration
 
-`.github/workflows/build.yml` builds every adapter on each push/PR (JDK 17, Gradle wrapper, cached
-ForgeGradle) and uploads the `McBans-*.jar` artifacts.
+- `.github/workflows/build.yml` — builds every adapter on each push/PR (JDK 17, Gradle wrapper,
+  cached ForgeGradle) and uploads the `McBans-*.jar` artifacts. Runs the unit tests as part of `build`.
+- `.github/workflows/smoke.yml` — a matrix over all five platforms that **boots a real server** of
+  each type and asserts the plugin enables (on demand + weekly, since it downloads servers).
 
 ## Local smoke test
 

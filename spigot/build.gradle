@@ -11,6 +11,11 @@ dependencies {
     implementation project(':bukkit')
 
     compileOnly 'org.spigotmc:spigot-api:1.20.4-R0.1-SNAPSHOT'
+
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.20:3.88.1'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 shadowJar {

@@ -9,6 +9,7 @@ import com.mcbans.plugin.core.command.CommandParsing;
 import com.mcbans.plugin.core.i18n.Messages;
 import com.mcbans.plugin.core.model.BanResult;
 import com.mcbans.plugin.core.permission.Perm;
+import com.mcbans.plugin.core.util.Identifiers;
 import com.google.gson.JsonObject;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -154,7 +155,7 @@ final class McBansCommands implements CommandExecutor, TabCompleter {
             return;
         }
         String ip = args[0];
-        if (!ip.matches("\\d{1,3}(\\.\\d{1,3}){3}")) {
+        if (!Identifiers.isIpv4(ip)) {
             err(sender, "invalidIP");
             return;
         }
@@ -346,8 +347,8 @@ final class McBansCommands implements CommandExecutor, TabCompleter {
     /** Resolve a target token to (name, uuid, ip), filling uuid/ip from the online player if present. */
     private Target resolve(String token) {
         // a raw UUID token
-        if (token.matches("(?i)[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}")) {
-            return new Target(token, token.replace("-", ""), "");
+        if (Identifiers.isUuid(token)) {
+            return new Target(token, Identifiers.normalizeUuid(token), "");
         }
         Player online = Bukkit.getPlayerExact(token);
         if (online != null) {
