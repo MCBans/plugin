@@ -51,3 +51,42 @@ jobs:
           name: smoke-${{ matrix.platform }}-log
           path: .servertest/${{ matrix.platform }}/server.log
           if-no-files-found: ignore
+
+  e2e:
+    # Full end-to-end: a real Paper/Spigot server + the plugin talking to a protocol-compatible
+    # /plugin/ws mock, driven through the server console (scripts/e2e-test.sh).
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build the Spigot jar
+        run: ./gradlew :spigot:build --no-daemon --stacktrace
+
+      - name: Run the end-to-end round trip
+        run: ./gradlew --stop; bash scripts/e2e-test.sh
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs
+          path: |
+            .servertest/e2e/server.log
+            .servertest/e2e/frames.log
+            .servertest/e2e/mock.log
+          if-no-files-found: ignore

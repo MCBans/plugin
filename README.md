@@ -91,9 +91,14 @@ Coverage is layered because mock-harness support differs per platform:
   network (config points at an unreachable host).
 - **Sponge / Forge / BungeeCord** — no in-JVM mock harness exists, so their coverage is the boot
   smoke test below (a real server is launched), backed by the shared `core` unit tests.
+- **End-to-end** — a real Paper/Spigot server + the plugin against a protocol-compatible
+  `/plugin/ws` mock, driven through the server console, asserting the actual WS frames in both
+  directions (register handshake, `/gban`/`/ban`/`/tempban`/`/banip`/`/unban` → outbound frames;
+  pushed `notice`/`banSync` → inbound handling). See `scripts/e2e-test.sh`.
 
 ```bash
 ./gradlew test          # core + Bukkit + Spigot unit tests
+./gradlew :spigot:build && scripts/e2e-test.sh   # full Spigot round trip (needs Node + Paper)
 ```
 
 ## Continuous integration
@@ -101,7 +106,8 @@ Coverage is layered because mock-harness support differs per platform:
 - `.github/workflows/build.yml` — builds every adapter on each push/PR (JDK 17, Gradle wrapper,
   cached ForgeGradle) and uploads the `McBans-*.jar` artifacts. Runs the unit tests as part of `build`.
 - `.github/workflows/smoke.yml` — a matrix over all five platforms that **boots a real server** of
-  each type and asserts the plugin enables (on demand + weekly, since it downloads servers).
+  each type and asserts the plugin enables, plus an **`e2e`** job that runs the full Spigot ↔
+  `/plugin/ws` round trip (`scripts/e2e-test.sh`). On demand + weekly, since it downloads servers.
 
 ## Local smoke test
 
