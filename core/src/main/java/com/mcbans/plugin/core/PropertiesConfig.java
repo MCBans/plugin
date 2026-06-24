@@ -31,11 +31,19 @@ public final class PropertiesConfig {
                 .apiKey(p.getProperty("api-key", "").trim())
                 .version(parseInt(p.getProperty("protocol-version"), 3))
                 .tls(Boolean.parseBoolean(p.getProperty("tls", "true")))
+                .prefix(p.getProperty("prefix", "&cMCBans &8>&r "))
+                .language(p.getProperty("language", "default").trim())
                 .kickMessage(p.getProperty("kick-message",
                         "You are banned from this server.\nReason: {reason}\nAppeal at www.mcbans.com"))
                 .failOpen(Boolean.parseBoolean(p.getProperty("fail-open", "true")))
                 .denyOnBannedStatus(Boolean.parseBoolean(p.getProperty("deny-on-banned-status", "false")))
                 .loginTimeoutMs(parseLong(p.getProperty("login-timeout-ms"), 5000))
+                .defaultLocalReason(p.getProperty("default-local-reason", "You have been banned!"))
+                .defaultTempReason(p.getProperty("default-temp-reason", "You have been temporarily banned!"))
+                .defaultKickReason(p.getProperty("default-kick-reason", "You have been kicked!"))
+                .minReputation(parseInt(p.getProperty("min-reputation"), -1))
+                .enableMaxAlts(Boolean.parseBoolean(p.getProperty("enable-max-alts", "false")))
+                .maxAlts(parseInt(p.getProperty("max-alts"), 2))
                 .build();
     }
 
@@ -55,6 +63,9 @@ public final class PropertiesConfig {
                     protocol-version=3
                     # Use TLS (wss://). false only for local ws:// dev.
                     tls=true
+                    # Chat prefix and language pack (default, german, french, spanish, ...).
+                    prefix=&cMCBans &8>&r\s
+                    language=default
                     # Shown to denied players; {reason} is substituted.
                     kick-message=You are banned from this server. Reason: {reason}. Appeal at www.mcbans.com
                     # On login-check timeout/error: true = allow in, false = deny.
@@ -63,6 +74,14 @@ public final class PropertiesConfig {
                     deny-on-banned-status=false
                     # Max ms to wait for the on-join ban check.
                     login-timeout-ms=5000
+                    # Default reasons when none supplied.
+                    default-local-reason=You have been banned!
+                    default-temp-reason=You have been temporarily banned!
+                    default-kick-reason=You have been kicked!
+                    # Login gates: minimum reputation (-1 disables) and max alt accounts.
+                    min-reputation=-1
+                    enable-max-alts=false
+                    max-alts=2
                     """;
             out.write(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }

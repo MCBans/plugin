@@ -4,39 +4,118 @@ main: com.mcbans.plugin.bukkit.McBansBukkitPlugin
 api-version: '1.16'
 author: MCBans
 description: MCBans global ban management — Bukkit/Spigot/Paper adapter.
+website: https://www.mcbans.com/
 load: STARTUP
 
 commands:
   mcbans:
-    description: Show MCBans connection status.
+    description: MCBans status / info.
     usage: /mcbans
-  mcban:
+  mcbs:
+    description: Change MCBans server settings.
+    usage: /mcbs <setting> <value>
+  ban:
+    description: Ban a player (use g / t modifiers for global / temp).
+    usage: /ban <player|UUID> [g | t <num> <m|h|d|w>] <reason>
+  globalban:
     description: Globally ban a player.
-    usage: /mcban <player> <reason>
-    permission: mcbans.ban
-  mctempban:
+    aliases: [gban]
+    usage: /globalban <player|UUID> <reason>
+  rban:
+    description: Ban a player (rollback engine not enabled in this build).
+    usage: /rban <player|UUID> [g | t <num> <m|h|d|w>] <reason>
+  tempban:
     description: Temporarily ban a player.
-    usage: /mctempban <player> <duration> <w|d|h|m> <reason>
-    permission: mcbans.tempban
-  mcunban:
+    aliases: [tban]
+    usage: /tempban <player|UUID> <duration> <m|h|d|w> [reason]
+  banip:
+    description: Ban an IP address.
+    aliases: [ipban]
+    usage: /banip <ip> [reason]
+  kick:
+    description: Kick a player from this server.
+    usage: /kick <player> [reason]
+  unban:
     description: Unban a player or IP.
-    usage: /mcunban <player|ip>
-    permission: mcbans.unban
-  mclookup:
+    usage: /unban <player|UUID|ip>
+  lookup:
     description: Look up a player's ban history.
-    usage: /mclookup <player>
-    permission: mcbans.lookup
+    aliases: [lup]
+    usage: /lookup <player|UUID>
+  banlookup:
+    description: Look up a ban by id.
+    aliases: [blup]
+    usage: /banlookup <banID>
+  altlookup:
+    description: Look up a player's alt accounts (premium).
+    aliases: [alup, alt]
+    usage: /altlookup <player|UUID>
+  namelookup:
+    description: Look up a player's previous names.
+    aliases: [nlup]
+    usage: /namelookup <player|UUID>
 
 permissions:
-  mcbans.ban:
-    description: Allows issuing global bans.
+  mcbans.announce:
+    description: Receive ban/kick announcements.
     default: op
-  mcbans.tempban:
-    description: Allows issuing temp bans.
+  mcbans.admin:
+    description: Admin privileges (settings + all commands).
+    default: op
+  mcbans.ban.global:
+    description: Use the global ban command.
+    default: op
+  mcbans.ban.local:
+    description: Use the local ban command.
+    default: op
+  mcbans.ban.temp:
+    description: Use the temp ban command.
+    default: op
+  mcbans.ban.rollback:
+    description: Use the rban command.
+    default: op
+  mcbans.ban.ip:
+    description: Use the banip command.
+    default: op
+  mcbans.ban.exempt:
+    description: Exempt from being banned.
     default: op
   mcbans.unban:
-    description: Allows unbanning.
+    description: Use the unban command.
     default: op
-  mcbans.lookup:
-    description: Allows ban-history lookups.
+  mcbans.kick:
+    description: Use the kick command.
+    default: op
+  mcbans.kick.exempt:
+    description: Exempt from being kicked.
+    default: op
+  mcbans.maxalts.exempt:
+    description: Exempt from the max-alts gate.
+    default: op
+  mcbans.view.bans:
+    description: See previous-ban notices on join.
+    default: op
+  mcbans.view.alts:
+    description: See alt-account notices on join.
+    default: op
+  mcbans.view.previous:
+    description: See previous-name notices on join.
+    default: op
+  mcbans.view.proxy:
+    description: See proxy/DNSBL notices on join.
+    default: op
+  mcbans.view.staff:
+    description: See MCBans-staff notices on join.
+    default: true
+  mcbans.hideview:
+    description: Hide previous-ban/alt notices on join.
+    default: false
+  mcbans.lookup.player:
+    description: Use the lookup / namelookup commands.
+    default: op
+  mcbans.lookup.ban:
+    description: Use the banlookup command.
+    default: op
+  mcbans.lookup.alt:
+    description: Use the altlookup command.
     default: op

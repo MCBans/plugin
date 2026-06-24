@@ -2,6 +2,7 @@ package com.mcbans.plugin.bungeecord;
 
 import com.mcbans.plugin.core.McBansConfig;
 import com.mcbans.plugin.core.McBansCore;
+import com.mcbans.plugin.core.OfflineBanList;
 import com.mcbans.plugin.core.PropertiesConfig;
 import com.mcbans.plugin.core.platform.BanSyncHandler;
 import com.mcbans.plugin.core.platform.FileCursorStore;
@@ -41,8 +42,9 @@ public final class McBansBungeePlugin extends Plugin implements Listener {
 
             BungeeLogger log = new BungeeLogger(getLogger());
             FileCursorStore cursors = new FileCursorStore(getDataFolder().toPath().resolve("cursor.dat"), log);
+            OfflineBanList offline = new OfflineBanList(getDataFolder().toPath().resolve("offline-bans.json"), log);
             // Login-only: no ban-sync application, no notice surfacing beyond logs.
-            this.core = new McBansCore(config, log, BanSyncHandler.NOOP, cursors);
+            this.core = new McBansCore(config, log, BanSyncHandler.NOOP, cursors, offline);
             this.core.start();
 
             getProxy().getPluginManager().registerListener(this, this);
@@ -76,18 +78,22 @@ public final class McBansBungeePlugin extends Plugin implements Listener {
         String ip = conn.getSocketAddress() instanceof InetSocketAddress addr
                 ? addr.getAddress().getHostAddress() : "";
 
-        core.checkLogin(uuid == null ? null : uuid.toString(), name, ip).whenComplete((result, err) -> {
+        final String uuidStr = uuid == null ? null : uuid.toString();
+        core.checkLogin(uuidStr, name, ip).whenComplete((result, err) -> {
             try {
                 if (err != null) {
                     getLogger().warning("[MCBans] login check error for " + name + ": " + err.getMessage());
-                    if (!core.config().failOpen()) {
-                        deny(event, "Unable to verify ban status. Try again shortly.");
+                    OfflineBanList offline = core.offlineBanList();
+                    if (offline != null && uuidStr != null && offline.isBanned(uuidStr)) {
+                        deny(event, core.offlineKickMessage(offline.get(uuidStr)));
+                    } else if (!core.config().failOpen()) {
+                        deny(event, core.messages().localize("unavailable"));
                     }
                     return;
                 }
-                if (core.shouldDeny(result)) {
-                    String reason = result.reason().isBlank() ? "Banned via MCBans." : result.reason();
-                    deny(event, core.config().kickMessage().replace("{reason}", reason));
+                String kick = core.loginKickMessage(result);
+                if (kick != null) {
+                    deny(event, kick);
                 }
             } finally {
                 event.completeIntent(this);

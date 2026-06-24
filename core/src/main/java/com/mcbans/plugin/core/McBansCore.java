@@ -2,7 +2,9 @@ package com.mcbans.plugin.core;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.mcbans.plugin.core.i18n.Messages;
 import com.mcbans.plugin.core.model.BanResult;
+import com.mcbans.plugin.core.model.BanStatus;
 import com.mcbans.plugin.core.model.LoginResult;
 import com.mcbans.plugin.core.net.McBansSocketClient;
 import com.mcbans.plugin.core.platform.BanSyncHandler;
@@ -26,11 +28,30 @@ public final class McBansCore {
     private final McBansConfig config;
     private final PluginLogger log;
     private final McBansSocketClient client;
+    private final Messages messages;
+    private final OfflineBanList offlineBanList;
 
     public McBansCore(McBansConfig config, PluginLogger log, BanSyncHandler handler, CursorStore cursors) {
+        this(config, log, handler, cursors, null);
+    }
+
+    public McBansCore(McBansConfig config, PluginLogger log, BanSyncHandler handler, CursorStore cursors,
+                      OfflineBanList offlineBanList) {
         this.config = config;
         this.log = log;
         this.client = new McBansSocketClient(config, log, handler, cursors);
+        this.messages = new Messages(config.language());
+        this.offlineBanList = offlineBanList;
+    }
+
+    /** Localised messages (language pack chosen by {@link McBansConfig#language()}). */
+    public Messages messages() {
+        return messages;
+    }
+
+    /** The failsafe offline ban cache (may be {@code null} if the adapter didn't supply one). */
+    public OfflineBanList offlineBanList() {
+        return offlineBanList;
     }
 
     public void start() {
@@ -69,6 +90,7 @@ public final class McBansCore {
         data.put("clientVersion", "4.1");
 
         String cmd = config.version() >= 3 ? "loginNew" : "login";
+        final String normalizedUuid = uuid == null ? null : uuid.replace("-", "");
         return client.sendCommand(cmd, Json.obj(data))
                 .orTimeout(config.loginTimeoutMs(), java.util.concurrent.TimeUnit.MILLISECONDS)
                 .handle((reply, err) -> {
@@ -77,8 +99,68 @@ public final class McBansCore {
                                 + " (failing " + (config.failOpen() ? "open" : "closed") + ").");
                         return failPolicyResult();
                     }
-                    return parseLogin(reply);
+                    LoginResult result = parseLogin(reply);
+                    cacheOffline(normalizedUuid, result);
+                    return result;
                 });
+    }
+
+    /** Keep the failsafe cache in step with the live result: record hard bans, clear when clean. */
+    private void cacheOffline(String uuid, LoginResult result) {
+        if (offlineBanList == null || uuid == null || uuid.isBlank()) {
+            return;
+        }
+        if (result.status().isHardBan()) {
+            offlineBanList.put(uuid, new OfflineBanList.Entry(
+                    result.reason(), banAdmin(result), result.banId(), typeLabel(result.status())));
+        } else if (result.status() == BanStatus.CLEAN) {
+            offlineBanList.remove(uuid);
+        }
+    }
+
+    private static String banAdmin(LoginResult result) {
+        return result.bans().isEmpty() ? "" : result.bans().get(0).admin();
+    }
+
+    private static String typeLabel(BanStatus status) {
+        return switch (status) {
+            case GLOBAL -> "GLOBAL";
+            case LOCAL -> "LOCAL";
+            case TEMP -> "TEMPORARY";
+            case IP_LOCK -> "IP";
+            default -> "";
+        };
+    }
+
+    /**
+     * Evaluate the full login policy and return the localized kick message if the player must be
+     * denied, or {@code null} to allow. Covers: active ban, the soft {@code b} status (per config),
+     * the minimum-reputation gate and the max-alts gate.
+     */
+    public String loginKickMessage(LoginResult result) {
+        if (result.status().isHardBan() || (config.denyOnBannedStatus() && result.status() == BanStatus.BANNED)) {
+            return messages.localize("banReturnMessage",
+                    Messages.ADMIN, banAdmin(result),
+                    Messages.REASON, result.reason().isBlank() ? "Banned via MCBans." : result.reason(),
+                    Messages.TYPE, typeLabel(result.status()),
+                    Messages.BANID, result.banId());
+        }
+        if (config.minReputation() >= 0 && result.reputation() < config.minReputation()) {
+            return messages.localize("underMinRep");
+        }
+        if (config.enableMaxAlts() && result.altCount() > config.maxAlts()) {
+            return messages.localize("overMaxAlts");
+        }
+        return null;
+    }
+
+    /** Render the offline-cache kick message for a player when the API was unreachable. */
+    public String offlineKickMessage(OfflineBanList.Entry entry) {
+        return messages.localize("banReturnMessage",
+                Messages.ADMIN, entry.admin(),
+                Messages.REASON, entry.reason().isBlank() ? "Banned via MCBans." : entry.reason(),
+                Messages.TYPE, entry.type(),
+                Messages.BANID, entry.banId());
     }
 
     private LoginResult parseLogin(JsonObject reply) {
@@ -176,6 +258,49 @@ public final class McBansCore {
     /** Whether a player is MCBans staff (and their cape URL when so). */
     public CompletableFuture<JsonObject> isMcBansStaff(String name) {
         return client.sendCommand("isMCBansStaff", Json.obj(Map.of("player", nz(name))))
+                .thenApply(this::dataObject);
+    }
+
+    /** Ban detail by numeric ban id. */
+    public CompletableFuture<JsonObject> banLookup(String banId) {
+        return client.sendCommand("banLookup", Json.obj(Map.of("ban", nz(banId)))).thenApply(this::dataObject);
+    }
+
+    /** Alt-account list for a player (premium servers only). */
+    public CompletableFuture<JsonObject> altList(String name, String uuid) {
+        return client.sendCommand("altList", Json.obj(Map.of("player", nz(name), "player_uuid", nz(uuid))))
+                .thenApply(this::dataObject);
+    }
+
+    /** Previous-names / UUID resolution lookup. */
+    public CompletableFuture<JsonObject> uuidLookup(String name, String uuid) {
+        return client.sendCommand("uuidLookup", Json.obj(Map.of("player", nz(name), "player_uuid", nz(uuid))))
+                .thenApply(this::dataObject);
+    }
+
+    /** Health/heartbeat ping. */
+    public CompletableFuture<JsonObject> ping() {
+        return client.sendCommand("ping", new JsonObject()).thenApply(this::dataObject);
+    }
+
+    /** Change a server setting (staff key). {@code expr} is the space-delimited setting expression. */
+    public CompletableFuture<JsonObject> setting(String expr) {
+        return client.sendCommand("setting", Json.obj(Map.of("setting", nz(expr)))).thenApply(this::dataObject);
+    }
+
+    /** DNSBL/proxy check for an IP. */
+    public CompletableFuture<JsonObject> dnsblCheck(String ip) {
+        return client.sendCommand("dnsblCheck", Json.obj(Map.of("playerip", nz(ip)))).thenApply(this::dataObject);
+    }
+
+    /** Whether this server is premium. */
+    public CompletableFuture<JsonObject> serverPremium() {
+        return client.sendCommand("serverPremium", new JsonObject()).thenApply(this::dataObject);
+    }
+
+    /** Notify MCBans that a player left this server's online list. */
+    public CompletableFuture<JsonObject> playerDisconnect(String name) {
+        return client.sendCommand("playerDisconnect", Json.obj(Map.of("player", nz(name))))
                 .thenApply(this::dataObject);
     }
 

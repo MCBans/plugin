@@ -17,6 +17,16 @@ public final class McBansConfig {
     private final long loginTimeoutMs;
     private final long requestTimeoutMs;
     private final int reportedClientVersion;
+    private final String prefix;
+    private final String language;
+    private final String defaultLocalReason;
+    private final String defaultTempReason;
+    private final String defaultKickReason;
+    private final int minReputation;
+    private final boolean enableMaxAlts;
+    private final int maxAlts;
+    private final boolean onJoinMessage;
+    private final boolean sendDetailPrevBans;
 
     private McBansConfig(Builder b) {
         this.host = b.host;
@@ -29,6 +39,16 @@ public final class McBansConfig {
         this.loginTimeoutMs = b.loginTimeoutMs;
         this.requestTimeoutMs = b.requestTimeoutMs;
         this.reportedClientVersion = b.reportedClientVersion;
+        this.prefix = b.prefix;
+        this.language = b.language;
+        this.defaultLocalReason = b.defaultLocalReason;
+        this.defaultTempReason = b.defaultTempReason;
+        this.defaultKickReason = b.defaultKickReason;
+        this.minReputation = b.minReputation;
+        this.enableMaxAlts = b.enableMaxAlts;
+        this.maxAlts = b.maxAlts;
+        this.onJoinMessage = b.onJoinMessage;
+        this.sendDetailPrevBans = b.sendDetailPrevBans;
     }
 
     /** Host (and optional port/path), e.g. {@code www.mcbans.com} or {@code localhost:8080}. */
@@ -85,6 +105,53 @@ public final class McBansConfig {
         return reportedClientVersion;
     }
 
+    /** Message prefix prepended to plugin chat output (supports {@code &} colour codes). */
+    public String prefix() {
+        return prefix;
+    }
+
+    /** Language pack name (e.g. {@code default}, {@code german}). */
+    public String language() {
+        return language;
+    }
+
+    public String defaultLocalReason() {
+        return defaultLocalReason;
+    }
+
+    public String defaultTempReason() {
+        return defaultTempReason;
+    }
+
+    public String defaultKickReason() {
+        return defaultKickReason;
+    }
+
+    /** Minimum reputation a player may have before being denied login ({@code -1} disables). */
+    public int minReputation() {
+        return minReputation;
+    }
+
+    /** Whether the max-alts gate is active. */
+    public boolean enableMaxAlts() {
+        return enableMaxAlts;
+    }
+
+    /** Maximum alt accounts allowed before denying login (when {@link #enableMaxAlts()}). */
+    public int maxAlts() {
+        return maxAlts;
+    }
+
+    /** Show the "secured by MCBans" advert on join. */
+    public boolean onJoinMessage() {
+        return onJoinMessage;
+    }
+
+    /** Show detailed previous-ban lines (admin/reason/server) to staff on join. */
+    public boolean sendDetailPrevBans() {
+        return sendDetailPrevBans;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -100,6 +167,16 @@ public final class McBansConfig {
         private long loginTimeoutMs = 5_000L;
         private long requestTimeoutMs = 10_000L;
         private int reportedClientVersion = 1;
+        private String prefix = "&cMCBans &8>&r ";
+        private String language = "default";
+        private String defaultLocalReason = "You have been banned!";
+        private String defaultTempReason = "You have been temporarily banned!";
+        private String defaultKickReason = "You have been kicked!";
+        private int minReputation = -1;
+        private boolean enableMaxAlts = false;
+        private int maxAlts = 2;
+        private boolean onJoinMessage = false;
+        private boolean sendDetailPrevBans = true;
 
         public Builder host(String v) { this.host = v; return this; }
         public Builder apiKey(String v) { this.apiKey = v; return this; }
@@ -111,6 +188,16 @@ public final class McBansConfig {
         public Builder loginTimeoutMs(long v) { this.loginTimeoutMs = v; return this; }
         public Builder requestTimeoutMs(long v) { this.requestTimeoutMs = v; return this; }
         public Builder reportedClientVersion(int v) { this.reportedClientVersion = v; return this; }
+        public Builder prefix(String v) { this.prefix = v; return this; }
+        public Builder language(String v) { this.language = v; return this; }
+        public Builder defaultLocalReason(String v) { this.defaultLocalReason = v; return this; }
+        public Builder defaultTempReason(String v) { this.defaultTempReason = v; return this; }
+        public Builder defaultKickReason(String v) { this.defaultKickReason = v; return this; }
+        public Builder minReputation(int v) { this.minReputation = v; return this; }
+        public Builder enableMaxAlts(boolean v) { this.enableMaxAlts = v; return this; }
+        public Builder maxAlts(int v) { this.maxAlts = v; return this; }
+        public Builder onJoinMessage(boolean v) { this.onJoinMessage = v; return this; }
+        public Builder sendDetailPrevBans(boolean v) { this.sendDetailPrevBans = v; return this; }
 
         public McBansConfig build() {
             if (apiKey == null || apiKey.isBlank()) {

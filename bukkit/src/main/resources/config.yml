@@ -1,7 +1,7 @@
 # MCBans plugin configuration (Bukkit / Spigot / Paper).
 
 # Your MCBans server API key (servers.server_api). REQUIRED — the plugin disables itself if blank.
-api-key: ''
+apiKey: 'YOUR_API_KEY_HERE'
 
 # MCBans host. The plugin connects to wss://<host>/plugin/ws.
 host: 'www.mcbans.com'
@@ -12,14 +12,40 @@ protocol-version: 3
 # Use TLS (wss://). Keep true in production; set false only for local ws:// dev.
 tls: true
 
-# Shown to a denied player. {reason} is replaced with the ban reason. Supports &-colour codes.
+# Prefix prepended to plugin chat messages (supports &-colour codes).
+prefix: "&cMCBans &8>&r "
+
+# Language pack: default, dutch, french, german, ja-jp, norwegian, portuguese, spanish, sv-se, zh_TW.
+language: default
+
+# Default ban/kick reasons used when none is supplied.
+defaultLocal: "You have been banned!"
+defaultTemp: "You have been temporarily banned!"
+defaultKick: "You have been kicked!"
+
+# Custom kick message for the on-join ban gate. {reason} is substituted. (Falls back to the
+# localized banReturnMessage when the server provides full ban detail.)
 kick-message: "&cYou are banned from this server.\n&7Reason: &f{reason}\n&7Appeal at &bwww.mcbans.com"
 
-# If a login check times out or errors: true = let the player in, false = deny them.
-fail-open: true
+# If true, DENY access when the MCBans API can't be reached (and the player isn't in the offline
+# ban cache). If false, allow them in. DEFAULT: false.
+failsafe: false
 
 # Whether the soft 'b' status (banned elsewhere / no MCBans account) also denies login.
 deny-on-banned-status: false
 
-# Max time (ms) to wait for the on-join ban check before applying the fail-open/closed policy.
-login-timeout-ms: 5000
+# Seconds to wait for the on-join ban check before applying the failsafe/offline policy.
+timeout: 10
+
+# Minimum reputation a player may have before being denied access. -1 disables. (0..10 scale.)
+minRep: -1
+
+# Limit the number of alt accounts before denying access.
+enableMaxAlts: false
+maxAlts: 2
+
+# Show "secured by MCBans" advert to players on join.
+onJoinMCBansMessage: false
+
+# Show detailed previous-ban lines (reason/server/admin) to staff (mcbans.view.bans) on join.
+sendDetailPrevBansOnJoin: true

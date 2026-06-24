@@ -2,23 +2,19 @@ package com.mcbans.plugin.bukkit;
 
 import com.mcbans.plugin.core.McBansConfig;
 import com.mcbans.plugin.core.McBansCore;
-import com.mcbans.plugin.core.model.LoginResult;
+import com.mcbans.plugin.core.OfflineBanList;
+import com.mcbans.plugin.core.i18n.Messages;
 import com.mcbans.plugin.core.platform.FileCursorStore;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Bukkit/Spigot/Paper entry point. Wires the generic {@link McBansCore} to the server: builds config
- * from {@code config.yml}, opens the WebSocket session, gates joins via the async pre-login event,
- * and registers the admin command set.
+ * from {@code config.yml}, opens the WebSocket session, registers the on-join ban gate + connect
+ * notifications ({@link McBansListener}) and the full admin command set ({@link McBansCommands}).
  */
-public class McBansBukkitPlugin extends JavaPlugin implements Listener {
+public class McBansBukkitPlugin extends JavaPlugin {
 
     private McBansCore core;
 
@@ -27,39 +23,56 @@ public class McBansBukkitPlugin extends JavaPlugin implements Listener {
         saveDefaultConfig();
         FileConfiguration c = getConfig();
 
-        if (c.getString("api-key", "").isBlank()) {
-            getLogger().severe("No api-key set in config.yml — MCBans is disabled. "
+        String apiKey = firstNonBlank(c.getString("apiKey"), c.getString("api-key"));
+        if (apiKey == null || apiKey.isBlank() || "YOUR_API_KEY_HERE".equals(apiKey)) {
+            getLogger().severe("No apiKey set in config.yml — MCBans is disabled. "
                     + "Add your server API key (servers.server_api) and restart.");
             return;
         }
 
         McBansConfig config = McBansConfig.builder()
                 .host(c.getString("host", "www.mcbans.com"))
-                .apiKey(c.getString("api-key", ""))
+                .apiKey(apiKey)
                 .version(c.getInt("protocol-version", 3))
                 .tls(c.getBoolean("tls", true))
+                .prefix(c.getString("prefix", "&cMCBans &8>&r "))
+                .language(c.getString("language", "default"))
                 .kickMessage(c.getString("kick-message", "&cYou are banned.\n&7{reason}"))
-                .failOpen(c.getBoolean("fail-open", true))
+                // "failsafe: true" means deny on error → failOpen is its inverse.
+                .failOpen(!c.getBoolean("failsafe", false))
                 .denyOnBannedStatus(c.getBoolean("deny-on-banned-status", false))
-                .loginTimeoutMs(c.getLong("login-timeout-ms", 5000))
+                .loginTimeoutMs(c.getLong("timeout", 10) * 1000L)
+                .defaultLocalReason(c.getString("defaultLocal", "You have been banned!"))
+                .defaultTempReason(c.getString("defaultTemp", "You have been temporarily banned!"))
+                .defaultKickReason(c.getString("defaultKick", "You have been kicked!"))
+                .minReputation(c.getInt("minRep", -1))
+                .enableMaxAlts(c.getBoolean("enableMaxAlts", false))
+                .maxAlts(c.getInt("maxAlts", 2))
+                .onJoinMessage(c.getBoolean("onJoinMCBansMessage", false))
+                .sendDetailPrevBans(c.getBoolean("sendDetailPrevBansOnJoin", true))
                 .build();
 
         BukkitLogger log = new BukkitLogger(getLogger());
         FileCursorStore cursors = new FileCursorStore(getDataFolder().toPath().resolve("cursor.dat"), log);
+        OfflineBanList offline = new OfflineBanList(getDataFolder().toPath().resolve("offline-bans.json"), log);
         BukkitBanSyncHandler handler = new BukkitBanSyncHandler(this, config.kickMessage());
 
-        this.core = new McBansCore(config, log, handler, cursors);
+        this.core = new McBansCore(config, log, handler, cursors, offline);
         this.core.start();
 
-        getServer().getPluginManager().registerEvents(this, this);
-        var executor = new McBansCommand(core);
-        getCommand("mcbans").setExecutor(executor);
-        getCommand("mcban").setExecutor(executor);
-        getCommand("mctempban").setExecutor(executor);
-        getCommand("mcunban").setExecutor(executor);
-        getCommand("mclookup").setExecutor(executor);
+        getServer().getPluginManager().registerEvents(new McBansListener(this), this);
 
-        getLogger().info("MCBans enabled (connecting to " + config.endpoint() + ").");
+        McBansCommands cmd = new McBansCommands(this);
+        for (String name : new String[] {"ban", "globalban", "tempban", "banip", "kick", "unban", "rban",
+                "lookup", "banlookup", "altlookup", "namelookup", "mcbans", "mcbs"}) {
+            if (getCommand(name) != null) {
+                getCommand(name).setExecutor(cmd);
+                getCommand(name).setTabCompleter(cmd);
+            }
+        }
+
+        getLogger().info("MCBans enabled (connecting to " + config.endpoint() + ", language="
+                + config.language() + ").");
     }
 
     @Override
@@ -69,34 +82,23 @@ public class McBansBukkitPlugin extends JavaPlugin implements Listener {
         }
     }
 
-    /**
-     * On-join ban check. Runs on Bukkit's async pre-login thread, so blocking on the network round
-     * trip is safe and recommended — the core's own timeout + fail-open/closed policy guarantees a
-     * decision even if the server is slow or unreachable.
-     */
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onPreLogin(AsyncPlayerPreLoginEvent event) {
-        String uuid = event.getUniqueId().toString();
-        String name = event.getName();
-        String ip = event.getAddress().getHostAddress();
+    McBansCore core() {
+        return core;
+    }
 
-        LoginResult result;
-        try {
-            result = core.checkLogin(uuid, name, ip)
-                    .get(core.config().loginTimeoutMs() + 2000, TimeUnit.MILLISECONDS);
-        } catch (Exception e) {
-            getLogger().warning("[MCBans] login check error for " + name + ": " + e.getMessage());
-            if (!core.config().failOpen()) {
-                event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED,
-                        MessageUtil.color("&cUnable to verify ban status. Try again shortly."));
-            }
-            return;
-        }
+    Messages messages() {
+        return core.messages();
+    }
 
-        if (core.shouldDeny(result)) {
-            String msg = core.config().kickMessage().replace("{reason}",
-                    result.reason().isBlank() ? "Banned via MCBans." : result.reason());
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, MessageUtil.color(msg));
+    /** Send a prefixed, colour-translated message to a sender. */
+    void send(CommandSender to, String message) {
+        to.sendMessage(Messages.color(core.config().prefix()) + message);
+    }
+
+    private static String firstNonBlank(String a, String b) {
+        if (a != null && !a.isBlank()) {
+            return a;
         }
+        return b;
     }
 }

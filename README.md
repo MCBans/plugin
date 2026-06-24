@@ -42,6 +42,44 @@ An adapter therefore only: builds a `McBansConfig` from its config system, insta
   registers no admin commands and a no-op ban-sync handler. **Run a server adapter on the backend
   servers** for ban issuing and live sync.
 
+## Features & commands
+
+Feature parity is modelled on the legacy `MCBans/MCBans` Bukkit plugin (v5.1.x). The shared brains
+(API ops, command parsing, login gates, i18n) live in `core`; the rich command/notification UX is
+wired into the **Bukkit/Spigot** adapter (Sponge/Forge/BungeeCord get the login gates + offline
+failsafe via the same core).
+
+**Commands** (Bukkit/Spigot):
+
+| Command | Aliases | Permission | Notes |
+|---|---|---|---|
+| `/ban <player\|UUID> [g \| t <n> <m\|h\|d\|w>] <reason>` | | `mcbans.ban.local/global/temp` | `g` → global, `t` → temp modifier |
+| `/globalban <player> <reason>` | `gban` | `mcbans.ban.global` | |
+| `/tempban <player> <dur> <m\|h\|d\|w> [reason]` | `tban` | `mcbans.ban.temp` | |
+| `/banip <ip> [reason]` | `ipban` | `mcbans.ban.ip` | |
+| `/kick <player> [reason]` | | `mcbans.kick` | local kick |
+| `/unban <player\|UUID\|ip>` | | `mcbans.unban` | clears offline cache |
+| `/lookup <player>` | `lup` | `mcbans.lookup.player` | |
+| `/banlookup <id>` | `blup` | `mcbans.lookup.ban` | |
+| `/altlookup <player>` | `alup`, `alt` | `mcbans.lookup.alt` | premium |
+| `/namelookup <player>` | `nlup` | `mcbans.lookup.player` | previous names |
+| `/mcbs <setting> <value>` | | `mcbans.admin` | server settings |
+| `/mcbans` | | — | status |
+
+> `/rban` is registered for compatibility but behaves as a normal ban — the CoreProtect/HawkEye/
+> LogBlock **rollback engine is not included** in this build.
+
+**On-join (all server adapters):** ban / min-reputation / max-alts gates, with an **offline ban
+cache** failsafe when the API is unreachable. Bukkit/Spigot additionally show staff notifications on
+join — previous bans (`mcbans.view.bans`), alt accounts (`mcbans.view.alts`), recent name changes
+(`mcbans.view.previous`), and the MCBans-staff notice (`mcbans.view.staff`).
+
+**Localization:** message packs in `core/src/main/resources/messages/*.properties` (default + 9
+translations, auto-converted from the legacy language files). Pick one with the `language:` setting.
+
+**Events (Bukkit/Spigot):** `PlayerBanEvent`, `PlayerUnbanEvent`, `PlayerKickEvent` for other
+plugins to listen to.
+
 ## Build
 
 Requires JDK 17 and network access to the platform mavens (Spigot, Sponge, Forge, Sonatype).
@@ -75,6 +113,9 @@ On first run each adapter writes a default config (then disables itself until yo
 - **Forge** — `config/mcbans.properties`
 - **BungeeCord** — `plugins/McBans/mcbans.properties`
 
-Key settings: `api-key` (your `servers.server_api`), `host` (default `www.mcbans.com`),
-`protocol-version` (`3` recommended), `tls`, `fail-open`, `kick-message` (`{reason}` is
-substituted). See the generated file for the full annotated list.
+Key settings: `apiKey` (your `servers.server_api`), `host` (default `www.mcbans.com`),
+`protocol-version` (`3` recommended), `tls`, `language`, `prefix`, `failsafe` (deny on API error),
+`minRep` (min reputation, `-1` disables), `enableMaxAlts`/`maxAlts`, `onJoinMCBansMessage`,
+`sendDetailPrevBansOnJoin`, and the default reasons. See the generated file for the full annotated
+list. (The Bukkit/Spigot `config.yml` uses these names; the Sponge/Forge/Bungee `.properties` use
+kebab-case equivalents such as `min-reputation`, `enable-max-alts`.)

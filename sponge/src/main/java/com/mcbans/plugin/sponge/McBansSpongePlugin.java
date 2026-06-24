@@ -3,6 +3,7 @@ package com.mcbans.plugin.sponge;
 import com.google.inject.Inject;
 import com.mcbans.plugin.core.McBansConfig;
 import com.mcbans.plugin.core.McBansCore;
+import com.mcbans.plugin.core.OfflineBanList;
 import com.mcbans.plugin.core.PropertiesConfig;
 import com.mcbans.plugin.core.model.LoginResult;
 import com.mcbans.plugin.core.platform.FileCursorStore;
@@ -44,8 +45,9 @@ public final class McBansSpongePlugin {
             McBansConfig config = PropertiesConfig.loadOrCreate(configDir.resolve("mcbans.properties"));
             SpongeLogger log = new SpongeLogger(logger);
             FileCursorStore cursors = new FileCursorStore(configDir.resolve("cursor.dat"), log);
+            OfflineBanList offline = new OfflineBanList(configDir.resolve("offline-bans.json"), log);
             SpongeBanSyncHandler handler = new SpongeBanSyncHandler(logger, config.kickMessage());
-            this.core = new McBansCore(config, log, handler, cursors);
+            this.core = new McBansCore(config, log, handler, cursors, offline);
             this.core.start();
             logger.info("MCBans enabled (connecting to {}).", config.endpoint());
         } catch (Exception e) {
@@ -73,16 +75,20 @@ public final class McBansSpongePlugin {
         try {
             LoginResult result = core.checkLogin(uuid, name, ip)
                     .get(core.config().loginTimeoutMs() + 2000, TimeUnit.MILLISECONDS);
-            if (core.shouldDeny(result)) {
-                String reason = result.reason().isBlank() ? "Banned via MCBans." : result.reason();
+            String kick = core.loginKickMessage(result);
+            if (kick != null) {
                 event.setCancelled(true);
-                event.setMessage(Component.text(core.config().kickMessage().replace("{reason}", reason)));
+                event.setMessage(Component.text(kick));
             }
         } catch (Exception e) {
             logger.warn("[MCBans] login check error for {}: {}", name, e.getMessage());
-            if (!core.config().failOpen()) {
+            OfflineBanList offline = core.offlineBanList();
+            if (offline != null && offline.isBanned(uuid)) {
                 event.setCancelled(true);
-                event.setMessage(Component.text("Unable to verify ban status. Try again shortly."));
+                event.setMessage(Component.text(core.offlineKickMessage(offline.get(uuid))));
+            } else if (!core.config().failOpen()) {
+                event.setCancelled(true);
+                event.setMessage(Component.text(core.messages().localize("unavailable")));
             }
         }
     }

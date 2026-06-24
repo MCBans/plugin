@@ -2,6 +2,7 @@ package com.mcbans.plugin.forge;
 
 import com.mcbans.plugin.core.McBansConfig;
 import com.mcbans.plugin.core.McBansCore;
+import com.mcbans.plugin.core.OfflineBanList;
 import com.mcbans.plugin.core.PropertiesConfig;
 import com.mcbans.plugin.core.model.BanSyncAction;
 import com.mcbans.plugin.core.model.Notice;
@@ -48,7 +49,9 @@ public final class McBansForgeMod {
             ForgeLogger log = new ForgeLogger(LOGGER);
             FileCursorStore cursors = new FileCursorStore(
                     FMLPaths.CONFIGDIR.get().resolve("mcbans-cursor.dat"), log);
-            this.core = new McBansCore(config, log, new ForgeBanSyncHandler(), cursors);
+            OfflineBanList offline = new OfflineBanList(
+                    FMLPaths.CONFIGDIR.get().resolve("mcbans-offline-bans.json"), log);
+            this.core = new McBansCore(config, log, new ForgeBanSyncHandler(), cursors, offline);
             this.core.start();
             LOGGER.info("MCBans enabled (connecting to {}).", config.endpoint());
         } catch (Exception e) {
@@ -73,11 +76,10 @@ public final class McBansForgeMod {
         String ip = extractIp(player);
 
         core.checkLogin(uuid, name, ip).thenAccept(result -> {
-            if (core.shouldDeny(result)) {
-                String reason = result.reason().isBlank() ? "Banned via MCBans." : result.reason();
-                String msg = core.config().kickMessage().replace("{reason}", reason);
+            String kick = core.loginKickMessage(result);
+            if (kick != null) {
                 // Disconnect must happen on the server thread.
-                server.execute(() -> player.connection.disconnect(Component.literal(msg)));
+                server.execute(() -> player.connection.disconnect(Component.literal(kick)));
             }
         });
     }
