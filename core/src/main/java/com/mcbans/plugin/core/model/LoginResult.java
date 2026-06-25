@@ -131,8 +131,8 @@ public final class LoginResult {
                 .reputation(asInt(o, "playerRep", 0))
                 .altCount(asInt(o, "altCount", 0))
                 .mcbansStaff("y".equalsIgnoreCase(asString(o, "is_mcbans_mod")))
-                .altList(asString(o, "altList"))
-                .nameChanges(asString(o, "nameChanges"))
+                .altList(asJoined(o, "altList"))
+                .nameChanges(asJoined(o, "nameChanges"))
                 .connectMessage(asString(o, "connectMessage"))
                 .premium(asBool(o, "premium"))
                 .banId(asString(o, "banId"))
@@ -208,7 +208,54 @@ public final class LoginResult {
 
     private static String asString(JsonObject o, String k) {
         JsonElement e = o.get(k);
-        return e == null || e.isJsonNull() ? "" : e.getAsString();
+        if (e == null || e.isJsonNull()) {
+            return "";
+        }
+        try {
+            return e.getAsString();
+        } catch (RuntimeException ex) {
+            // Not a scalar (e.g. a JSON array/object). Gson's getAsString() throws on these, and
+            // an uncaught throw here would abort the WHOLE login check (parseLogin -> the future
+            // completes exceptionally -> the join handler treats it as API-unreachable, so a clean
+            // player joins with no ban gate / staff notice). Never let one odd field do that.
+            return "";
+        }
+    }
+
+    /**
+     * Read a field that the {@code loginNew} JSON sends as an <b>array of strings</b>
+     * ({@code altList}, {@code nameChanges}) but the legacy/v2 JSON may send as a plain
+     * comma-string — normalised to a comma-separated string. Empty padding entries are dropped.
+     * (Gson's {@code getAsString()} throws on a multi/empty array, so arrays must be handled here.)
+     */
+    private static String asJoined(JsonObject o, String k) {
+        JsonElement e = o.get(k);
+        if (e == null || e.isJsonNull()) {
+            return "";
+        }
+        if (e.isJsonArray()) {
+            StringBuilder sb = new StringBuilder();
+            for (JsonElement el : e.getAsJsonArray()) {
+                if (el == null || el.isJsonNull()) {
+                    continue;
+                }
+                String s;
+                try {
+                    s = el.getAsString();
+                } catch (RuntimeException ex) {
+                    continue;
+                }
+                if (s.isEmpty()) {
+                    continue;
+                }
+                if (sb.length() > 0) {
+                    sb.append(", ");
+                }
+                sb.append(s);
+            }
+            return sb.toString();
+        }
+        return asString(o, k);
     }
 
     private static boolean asBool(JsonObject o, String k) {
