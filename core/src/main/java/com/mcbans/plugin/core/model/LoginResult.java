@@ -31,6 +31,8 @@ public final class LoginResult {
     private final boolean premium;
     private final List<BanRecord> bans;
     private final String banId;
+    private final String banType;
+    private final String banAdmin;
 
     private LoginResult(Builder b) {
         this.status = b.status;
@@ -44,6 +46,8 @@ public final class LoginResult {
         this.premium = b.premium;
         this.bans = b.bans;
         this.banId = b.banId;
+        this.banType = b.banType;
+        this.banAdmin = b.banAdmin;
     }
 
     public BanStatus status() {
@@ -95,6 +99,21 @@ public final class LoginResult {
         return banId;
     }
 
+    /**
+     * The offending ban's real type ({@code global}/{@code local}/{@code temp}, or
+     * {@code MCBans Security}) — the v3 {@code loginNew} {@code banType} field. This is the type
+     * to <em>display</em>; it is distinct from the {@code g}/{@code l}/{@code t} {@link #status}
+     * deny-action code (which collapses a global ban on the banning server to {@code l}). Empty on
+     * the legacy {@code ;}-tuple path. */
+    public String banType() {
+        return banType;
+    }
+
+    /** The banning admin's name — the v3 {@code loginNew} {@code banAdmin} field (empty on legacy). */
+    public String banAdmin() {
+        return banAdmin;
+    }
+
     /** Convenience: should this player be kicked under the strict default policy? */
     public boolean shouldDeny() {
         return status.isHardBan();
@@ -116,7 +135,9 @@ public final class LoginResult {
                 .nameChanges(asString(o, "nameChanges"))
                 .connectMessage(asString(o, "connectMessage"))
                 .premium(asBool(o, "premium"))
-                .banId(asString(o, "banId"));
+                .banId(asString(o, "banId"))
+                .banType(asString(o, "banType"))
+                .banAdmin(asString(o, "banAdmin"));
 
         JsonElement bansEl = o.get("bans");
         if (bansEl != null && bansEl.isJsonArray()) {
@@ -159,6 +180,8 @@ public final class LoginResult {
         private boolean premium;
         private List<BanRecord> bans = Collections.emptyList();
         private String banId = "";
+        private String banType = "";
+        private String banAdmin = "";
 
         public Builder status(BanStatus v) { this.status = v; return this; }
         public Builder reason(String v) { this.reason = v == null ? "" : v; return this; }
@@ -171,6 +194,8 @@ public final class LoginResult {
         public Builder premium(boolean v) { this.premium = v; return this; }
         public Builder bans(List<BanRecord> v) { this.bans = v == null ? Collections.emptyList() : v; return this; }
         public Builder banId(String v) { this.banId = v == null ? "" : v; return this; }
+        public Builder banType(String v) { this.banType = v == null ? "" : v; return this; }
+        public Builder banAdmin(String v) { this.banAdmin = v == null ? "" : v; return this; }
 
         public LoginResult build() {
             return new LoginResult(this);

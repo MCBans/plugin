@@ -113,14 +113,40 @@ public final class McBansCore {
         }
         if (result.status().isHardBan()) {
             offlineBanList.put(uuid, new OfflineBanList.Entry(
-                    result.reason(), banAdmin(result), result.banId(), typeLabel(result.status())));
+                    result.reason(), banAdmin(result), result.banId(), typeLabel(result)));
         } else if (result.status() == BanStatus.CLEAN) {
             offlineBanList.remove(uuid);
         }
     }
 
+    /**
+     * The banning admin's name for the kick screen — the v3 {@code banAdmin} field, falling back
+     * to the first ban-history entry (the legacy {@code ;}-tuple path carries no admin).
+     */
     private static String banAdmin(LoginResult result) {
+        if (result.banAdmin() != null && !result.banAdmin().isBlank()) {
+            return result.banAdmin();
+        }
         return result.bans().isEmpty() ? "" : result.bans().get(0).admin();
+    }
+
+    /**
+     * The ban type to display. Prefers the real ban type the backend reports
+     * ({@link LoginResult#banType()} — {@code global}/{@code local}/{@code temp}/MCBans), so a
+     * global ban on the banning server shows GLOBAL even though its deny-action status code is
+     * {@code l}. Falls back to the status-derived label when no banType is present (legacy path).
+     */
+    private static String typeLabel(LoginResult result) {
+        String t = result.banType();
+        if (t != null && !t.isBlank()) {
+            return switch (t.toLowerCase(java.util.Locale.ROOT)) {
+                case "global" -> "GLOBAL";
+                case "local" -> "LOCAL";
+                case "temp" -> "TEMPORARY";
+                default -> t; // e.g. "MCBans Security"
+            };
+        }
+        return typeLabel(result.status());
     }
 
     private static String typeLabel(BanStatus status) {
@@ -143,7 +169,7 @@ public final class McBansCore {
             return messages.localize("banReturnMessage",
                     Messages.ADMIN, banAdmin(result),
                     Messages.REASON, result.reason().isBlank() ? "Banned via MCBans." : result.reason(),
-                    Messages.TYPE, typeLabel(result.status()),
+                    Messages.TYPE, typeLabel(result),
                     Messages.BANID, result.banId());
         }
         if (config.minReputation() >= 0 && result.reputation() < config.minReputation()) {
